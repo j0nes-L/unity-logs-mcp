@@ -1,0 +1,47 @@
+# All values come from .env, which setup.sh writes.
+services:
+  # Takes uploads and serves the HTTP MCP. Never gets the private key, so it only ever stores and returns [pii:…] tokens.
+  api:
+    build: ./server
+    image: unity-logs-mcp
+    restart: unless-stopped
+    environment:
+      API_KEY: ${API_KEY:?run setup.sh}
+      MCP_TOKEN: ${MCP_TOKEN:?run setup.sh}
+      LOG_RETENTION_DAYS: ${LOG_RETENTION_DAYS:-30}
+      RATE_LIMIT_PER_MINUTE: ${RATE_LIMIT_PER_MINUTE:-30}
+      ASPNETCORE_FORWARDEDHEADERS_ENABLED: ${BEHIND_PROXY:-false}   # Real client IPs for the rate limit when Caddy is in front.
+    ports:
+      - "${BIND:-0.0.0.0}:${PORT:-8080}:8080"
+    volumes:
+      - logs:/data
+
+  # HTTPS with an automatic Let's Encrypt certificate; only started when setup.sh got a domain (COMPOSE_PROFILES=tls).
+  caddy:
+    image: caddy:2
+    profiles: [tls]
+    restart: unless-stopped
+    command: caddy reverse-proxy --from ${DOMAIN:-localhost} --to api:8080
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - caddy:/data
+
+  # Plain-text MCP over stdio, started per Claude session via SSH. No network, logs read-only, and the only
+  # container that ever sees the private key.
+  mcp-stdio:
+    image: unity-logs-mcp
+    profiles: [stdio]
+    network_mode: none
+    user: "${HOST_UID:-1000}"   # The key file is 600 and owned by the host user.
+    command: ["--stdio"]
+    environment:
+      LOG_PRIVATE_KEY_FILES: /secrets/log-private.pem
+    volumes:
+      - logs:/data:ro
+      - ./secrets:/secrets:ro
+
+volumes:
+  logs:
+  caddy:

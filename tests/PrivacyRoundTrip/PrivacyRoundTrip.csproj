@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Encrypts with the Unity client's MCPLogPrivacy and decrypts with the server's LogPrivacy: dotnet run -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>annotations</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <!-- The client code targets Unity's netstandard2.1 and uses APIs .NET marks obsolete. -->
+    <NoWarn>SYSLIB0021;SYSLIB0023</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="../../package/MCPLogPrivacy.cs" />
+    <Compile Include="../../server/LogPrivacy.cs" />
+  </ItemGroup>
+
+</Project>
