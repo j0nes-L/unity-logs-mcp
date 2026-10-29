@@ -1,6 +1,6 @@
 # Unity Logs MCP
 
-Uploads Unity Editor and development-build logs to your own server and makes them readable for an AI agent like Claude Code via MCP.
+Uploads Unity Editor and development-build logs to your own server and makes them readable for an AI agent via MCP, like for example Claude Code.
 Personal data (names, emails, device ids, ...) is encrypted in the client and only decrypted where the private key lives.
 
 ```
