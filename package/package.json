@@ -1,0 +1,11 @@
+{
+  "name": "com.j0nes-l.unity-logs-mcp",
+  "displayName": "Unity Logs MCP",
+  "version": "1.0.0",
+  "unity": "6000.0",
+  "description": "Package for uploading and storing Unity Editor / Build Logs on your own server and making them accessible for an AI Agent via a mcp.",
+  "author": { "name": "Jonas Ludorf" },
+  "repository": "github:j0nes-L/unity-logs-mcp",
+  "license": "MIT",
+  "dependencies": {}
+}

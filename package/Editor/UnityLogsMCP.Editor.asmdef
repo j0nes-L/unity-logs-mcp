@@ -1,0 +1,6 @@
+{
+    "name": "UnityLogsMCP.Editor",
+    "rootNamespace": "UnityLogsMCP.Editor",
+    "references": [ "UnityLogsMCP" ],
+    "includePlatforms": [ "Editor" ]
+}
