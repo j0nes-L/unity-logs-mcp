@@ -43,7 +43,9 @@ static void Check(bool ok, string what)
 
 namespace UnityEngine
 {
-    /// <summary>The one Unity API MCPLogPrivacy touches.</summary>
+    /// <summary>
+    /// The one Unity API MCPLogPrivacy touches.
+    /// </summary>
     public static class Debug
     {
         public static void LogWarning(object message) => Console.Error.WriteLine(message);
