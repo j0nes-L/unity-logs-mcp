@@ -21,7 +21,7 @@ if (args.Contains("--stdio"))
     return;
 }
 
-string apiKey = Require("API_KEY");
+string unityAccessKey = Require("UNITY_ACCESS_KEY");
 string mcpToken = Require("MCP_TOKEN");
 int retentionDays = int.TryParse(Environment.GetEnvironmentVariable("LOG_RETENTION_DAYS"), out int days) ? days : 30;
 int uploadsPerMinute = int.TryParse(Environment.GetEnvironmentVariable("RATE_LIMIT_PER_MINUTE"), out int limit) ? limit : 30;
@@ -40,7 +40,7 @@ builder.Services.AddRateLimiter(o =>
 var app = builder.Build();
 app.UseRateLimiter();
 
-// The MCP endpoint takes only the MCP token. The API key ships inside development builds, so it may upload but never read.
+// The MCP endpoint takes only the MCP token. The Unity access key ships inside development builds, so it may upload but never read.
 app.Use(async (ctx, next) =>
 {
     if (ctx.Request.Path.StartsWithSegments("/mcp") && !SecretMatches(ctx.Request.Headers.Authorization.ToString(), "Bearer " + mcpToken))
@@ -58,7 +58,7 @@ app.MapGet("/health", () => "ok");
 // Body: the raw log text, no multipart, so a client on its way down has as little to do as possible.
 app.MapPost("/logs", async (HttpContext ctx) =>
 {
-    if (!SecretMatches(ctx.Request.Headers["X-API-Key"].ToString(), apiKey)) return Results.Unauthorized();
+    if (!SecretMatches(ctx.Request.Headers["X-Access-Key"].ToString(), unityAccessKey)) return Results.Unauthorized();
 
     var bodyLimit = ctx.Features.Get<IHttpMaxRequestBodySizeFeature>();
     if (bodyLimit is { IsReadOnly: false }) bodyLimit.MaxRequestBodySize = MaxBodyBytes;

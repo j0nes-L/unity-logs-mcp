@@ -37,7 +37,7 @@ echo "How long should logs be kept?  1) 7 days   2) 30 days   3) unlimited, neve
 case $(ask "Choice" "$current") in 1) LOG_RETENTION_DAYS=7 ;; 3) LOG_RETENTION_DAYS=0 ;; *) LOG_RETENTION_DAYS=30 ;; esac
 
 PORT=${PORT:-8080}
-API_KEY=${API_KEY:-$(openssl rand -hex 32)}
+UNITY_ACCESS_KEY=${UNITY_ACCESS_KEY:-${API_KEY:-$(openssl rand -hex 32)}}   # API_KEY: its name before the rename.
 MCP_TOKEN=${MCP_TOKEN:-$(openssl rand -hex 32)}
 
 mkdir -p secrets && chmod 700 secrets
@@ -47,19 +47,22 @@ fi
 openssl pkey -in secrets/log-private.pem -pubout -out secrets/log-public.pem
 
 if [ -n "$DOMAIN" ]; then
-  SSH_HOST=$DOMAIN; BASE_URL="https://$DOMAIN"
+  PUBLIC_HOST=$DOMAIN; BASE_URL="https://$DOMAIN"
   BIND=127.0.0.1; BEHIND_PROXY=true; COMPOSE_PROFILES=tls   # Only Caddy talks to the API.
 else
-  SSH_HOST=$(hostname -I 2>/dev/null | awk '{print $1}' || true); SSH_HOST=${SSH_HOST:-SERVER-IP}
-  BASE_URL="http://$SSH_HOST:$PORT"
+  # Cloud servers often only know their private address, so the detected one is just a suggestion.
+  detected=$(hostname -I 2>/dev/null | awk '{print $1}' || true)
+  PUBLIC_HOST=$(ask "Public IP of this server, Unity and Claude connect to it" "${PUBLIC_HOST:-${detected:-SERVER-IP}}")
+  BASE_URL="http://$PUBLIC_HOST:$PORT"
   BIND=0.0.0.0; BEHIND_PROXY=false; COMPOSE_PROFILES=
 fi
 
 (umask 077 && cat > .env <<EOF
 CONNECTION_NAME=$CONNECTION_NAME
 DOMAIN=$DOMAIN
+PUBLIC_HOST=$PUBLIC_HOST
 LOG_RETENTION_DAYS=$LOG_RETENTION_DAYS
-API_KEY=$API_KEY
+UNITY_ACCESS_KEY=$UNITY_ACCESS_KEY
 MCP_TOKEN=$MCP_TOKEN
 PORT=$PORT
 BIND=$BIND
@@ -73,16 +76,9 @@ docker compose up -d --build
 
 cat <<EOF
 
-=============== Unity: MCPLogger component ===============
-Endpoint       : $BASE_URL/logs
-API key        : $API_KEY
-                 (in Unity: Tools > Unity Logs MCP > Set API Key)
-Public Key Pem :
-$(cat secrets/log-public.pem)
-
 =============== Claude Code: pick one ===============
 Plain text, via SSH - the private key never leaves this server (needs SSH key login from your machine):
-  claude mcp add --scope user $CONNECTION_NAME -- ssh $(whoami)@$SSH_HOST docker compose -f $DIR/docker-compose.yml run --rm -T mcp-stdio
+  claude mcp add --scope user $CONNECTION_NAME -- ssh $(whoami)@$PUBLIC_HOST docker compose -f $DIR/docker-compose.yml run --rm -T mcp-stdio
 
 Remote, over $BASE_URL - personal data stays [pii:...] tokens:
   claude mcp add --scope user --transport http $CONNECTION_NAME $BASE_URL/mcp --header "Authorization: Bearer $MCP_TOKEN"
@@ -92,5 +88,21 @@ Private key: $DIR/secrets/log-private.pem - back it up, without it the personal 
 EOF
 
 if [ -z "$DOMAIN" ]; then
-  echo "Warning: without a domain, keys and logs travel unencrypted, and Android blocks plain HTTP unless the Unity player settings allow it." >&2
+  cat <<EOF
+
+Without a domain everything runs over plain HTTP:
+  - Open port $PORT in the firewall.
+  - The Unity access key, the MCP token and the log text travel unencrypted; only personal data is protected by the [pii:...] tokens.
+  - Unity refuses plain HTTP by default: Project Settings > Player > Other Settings > Allow downloads over HTTP = Always allowed.
+EOF
 fi
+
+cat <<EOF
+
+=============== Unity: MCPLogger component ===============
+Public Key Pem   :
+$(cat secrets/log-public.pem)
+Unity access key : $UNITY_ACCESS_KEY
+                   (in Unity: Tools > Unity Logs MCP > Set Unity Access Key)
+Endpoint         : $BASE_URL/logs
+EOF

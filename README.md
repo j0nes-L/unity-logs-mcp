@@ -32,7 +32,7 @@ https://github.com/j0nes-L/unity-logs-mcp.git?path=/package
 ```
 
 Add the `MCPLogger` component to a GameObject in your first scene, fill in the endpoint and the public key from the setup output,
-and store the API key via **Tools → Unity Logs MCP → Set API Key** (kept in `UserSettings/`, never in the scene).
+and store the Unity access key via **Tools → Unity Logs MCP → Set Unity Access Key** (kept in `UserSettings/`, never in the scene).
 Only the editor and development builds upload; release builds strip the logger.
 
 ## Claude Code

@@ -20,11 +20,11 @@ namespace UnityLogsMCP
         private const int BufferMaxChars = 1024 * 1024;     // What the log may hold. Several megabytes over headset Wi-Fi do not fit into the quit timeout, so the oldest lines go first.
         private const int MetaMaxChars = 200;               // Keeps free-text query parameters, and with them the URL, sane.
 
-        public const string ApiKeyFile = "UserSettings/MCPLoggerApiKey.txt";  // Relative to the project root. UserSettings/ is in Unity's default .gitignore, so the key never reaches the repo.
+        public const string AccessKeyFile = "UserSettings/MCPLoggerAccessKey.txt";  // Relative to the project root. UserSettings/ is in Unity's default .gitignore, so the key never reaches the repo.
 
         [SerializeField] private string endpoint = "";              // Full ingest URL, e.g. https://logs.example.com/logs
-        [SerializeField, HideInInspector] private string apiKey = "";  // Stays empty in the scene file; the editor reads ApiKeyFile, development builds get it injected into the built scene.
-        [SerializeField] private string apiKeyHeader = "X-API-Key"; // The header the server expects the API key in. The default is what the log MCP server expects, but a custom endpoint may want a different one.
+        [SerializeField, HideInInspector] private string accessKey = "";  // Unity access key. Stays empty in the scene file; the editor reads AccessKeyFile, development builds get it injected into the built scene.
+        [SerializeField] private string accessKeyHeader = "X-Access-Key"; // The header the server expects the Unity access key in. The default is what the log MCP server expects, but a custom endpoint may want a different one.
         [SerializeField, TextArea(3, 10)] private string publicKeyPem = "";  // RSA public key of the MCP server (PEM, SPKI or PKCS#1, at least 2048 bit).
         [SerializeField] private bool uploadOnQuit = true;          // Also covers going to the background on mobile, the last moment Android reliably gives a closing app.
 
@@ -49,8 +49,8 @@ namespace UnityLogsMCP
             Application.logMessageReceivedThreaded += HandleLog;
 
 #if UNITY_EDITOR
-            if (string.IsNullOrEmpty(apiKey) && File.Exists(ApiKeyFile))
-                apiKey = File.ReadAllText(ApiKeyFile).Trim();
+            if (string.IsNullOrEmpty(accessKey) && File.Exists(AccessKeyFile))
+                accessKey = File.ReadAllText(AccessKeyFile).Trim();
 #endif
 
             deviceId = HashDeviceId(SystemInfo.deviceUniqueIdentifier);
@@ -130,9 +130,9 @@ namespace UnityLogsMCP
             url = null;
             body = null;
 
-            if (string.IsNullOrEmpty(endpoint) || string.IsNullOrEmpty(apiKey))
+            if (string.IsNullOrEmpty(endpoint) || string.IsNullOrEmpty(accessKey))
             {
-                Debug.LogWarning("MCPLogger: upload skipped, endpoint or API key is not configured.");
+                Debug.LogWarning("MCPLogger: upload skipped, endpoint or Unity access key is not configured.");
                 return false;
             }
 
@@ -209,7 +209,7 @@ namespace UnityLogsMCP
                     req.uploadHandler = new UploadHandlerRaw(body);
                     req.downloadHandler = new DownloadHandlerBuffer();
                     req.SetRequestHeader("Content-Type", "text/plain; charset=utf-8");
-                    req.SetRequestHeader(apiKeyHeader, apiKey);
+                    req.SetRequestHeader(accessKeyHeader, accessKey);
 
                     yield return req.SendWebRequest();
 
@@ -248,7 +248,7 @@ namespace UnityLogsMCP
                 request.ContentLength = body.Length;
                 request.Timeout = UploadSyncTimeoutMs;
                 request.ReadWriteTimeout = UploadSyncTimeoutMs;
-                request.Headers[apiKeyHeader] = apiKey;
+                request.Headers[accessKeyHeader] = accessKey;
 
                 using (Stream stream = request.GetRequestStream())
                     stream.Write(body, 0, body.Length);

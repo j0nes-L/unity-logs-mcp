@@ -6,7 +6,7 @@ services:
     image: unity-logs-mcp
     restart: unless-stopped
     environment:
-      API_KEY: ${API_KEY:?run setup.sh}
+      UNITY_ACCESS_KEY: ${UNITY_ACCESS_KEY:?run setup.sh}
       MCP_TOKEN: ${MCP_TOKEN:?run setup.sh}
       LOG_RETENTION_DAYS: ${LOG_RETENTION_DAYS:-30}
       RATE_LIMIT_PER_MINUTE: ${RATE_LIMIT_PER_MINUTE:-30}
